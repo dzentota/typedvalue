@@ -1,0 +1,11 @@
+language: php
+php:
+  - '7.4'
+  - '8.0'
+install: composer install --no-interaction
+script:
+  - ./vendor/bin/phpunit
+cache:
+  directories:
+  - vendor
+  - $HOME/.cache/composer
