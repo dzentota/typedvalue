@@ -34,16 +34,27 @@ trait CompositeValue
         return ($this->toNative() == $object->toNative());
     }
 
-    /**
-     * @return array
-     */
     public function toNative(): array
     {
         return array_map(function (Typed $typedValue) {
-            return $typedValue->toNative();
+            return $typedValue->isNull()? $this->defaults(get_class($typedValue)) : $typedValue->toNative();
         }, $this->propertiesToArray());
     }
 
+    /**
+     * @param string $class
+     * @return mixed
+     */
+    protected function defaults(string $class)
+    {
+        return null;
+    }
+
+    /**
+     * @param $value
+     * @return static
+     * @throws \ReflectionException
+     */
     public static function fromNative($value): Typed
     {
         if (!is_array($value)) {
