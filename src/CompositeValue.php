@@ -7,6 +7,7 @@ namespace dzentota\TypedValue;
 trait CompositeValue
 {
     private static $fieldDefinitions;
+    private static bool $ignoreUnknownFields = true;
 
     /**
      * @return bool
@@ -52,7 +53,7 @@ trait CompositeValue
         $object = $reflectionClass->newInstanceWithoutConstructor();
         $fields = static::getFields();
         $ignored = array_diff_key($value, $fields);
-        if (!empty($ignored)) {
+        if (!static::$ignoreUnknownFields && count($ignored)) {
             throw new \InvalidArgumentException("Unknown field(s): " . implode(', ', array_keys($ignored)));
         }
         foreach ($fields as $fieldName => $fieldType) {
