@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace tests\dzentota\TypedValue;
 
+use dzentota\TypedValue\Enum;
 use dzentota\TypedValue\Typed;
 use dzentota\TypedValue\TypedValue;
 use PHPUnit\Framework\TestCase;
@@ -40,11 +41,12 @@ final class CompositeValueTest extends TestCase
         CompositeValue::fromNative(1000);
     }
 
-    public function test_to_native_returns_original_value()
+    public function test_to_native_returns_original_value_and_null()
     {
         $native = ['email' => 'foo@bar.com', 'url' => 'https://example.com'];
+        $expected = ['email' => 'foo@bar.com', 'url' => 'https://example.com', 'option' => null];
         $compositeValue = CompositeValue::fromNative($native);
-        $this->assertEquals($native, $compositeValue->toNative());
+        $this->assertEquals($expected, $compositeValue->toNative());
     }
 }
 
@@ -54,6 +56,17 @@ final class CompositeValue implements Typed
 
     private Email $email;
     private Url $url;
+    private ?Option $option;
+}
+
+class Option implements Typed
+{
+    use TypedValue;
+
+    public static function validate($value): bool
+    {
+        return $value === null || is_string($value);
+    }
 }
 
 class Email implements Typed

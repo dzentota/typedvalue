@@ -56,7 +56,7 @@ trait CompositeValue
             throw new \InvalidArgumentException("Unknown field(s): " . implode(', ', array_keys($ignored)));
         }
         foreach ($fields as $fieldName => $fieldType) {
-            $object->$fieldName = $fieldType::fromNative($value[$fieldName]);
+            $object->$fieldName = $fieldType::fromNative($value[$fieldName]?? null);
         }
         if (is_callable([static::class , 'validateProperties'])) {
             static::validateProperties();
