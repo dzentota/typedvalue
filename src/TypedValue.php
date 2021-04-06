@@ -17,9 +17,18 @@ trait TypedValue
      */
     protected $value;
 
-    public static function tryParse($value, ?Typed &$typed): bool
+    /**
+     * Implementation of TryParse pattern
+     * @link https://docs.microsoft.com/en-us/dotnet/standard/design-guidelines/exceptions-and-performance#try-parse-pattern
+     * @param mixed $value Value to parse
+     * @param Typed|null $typed
+     * @param ValidationResult|null $result
+     * @return bool
+     */
+    public static function tryParse($value, ?Typed &$typed = null, ?ValidationResult &$result = null): bool
     {
-        if(!static::validate($value)) {
+        $result = static::validate($value);
+        if($result->fails()) {
             return false;
         }
         $typed = new static();
@@ -27,12 +36,20 @@ trait TypedValue
         return true;
     }
 
-    abstract public static function validate($value): bool;
+    /**
+     * @param $value
+     * @return ValidationResult
+     */
+    abstract public static function validate($value): ValidationResult;
 
+    /**
+     * @param $value
+     */
     public static function assert($value)
     {
-        if (!static::validate($value)) {
-            throw new \InvalidArgumentException(sprintf('"%s" type cannot be created from "%s"', get_called_class(), $value));
+        $result = static::validate($value);
+        if ($result->fails()) {
+            throw new ValidationException(sprintf('"%s" cannot be created from "%s"', get_called_class(), $value), $result);
         }
     }
     /**
@@ -52,6 +69,10 @@ trait TypedValue
         return ($this->toNative() === $object->toNative());
     }
 
+    /**
+     * @param mixed $native
+     * @return Typed|static
+     */
     public static function fromNative($native): Typed
     {
         static::assert($native);
@@ -60,6 +81,9 @@ trait TypedValue
         return $typedValue;
     }
 
+    /**
+     * @return mixed
+     */
     public function toNative()
     {
         return $this->value;

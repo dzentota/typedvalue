@@ -3,9 +3,6 @@ declare(strict_types=1);
 
 namespace dzentota\TypedValue;
 
-use Respect\Validation\Validatable;
-use Respect\Validation\Validator;
-
 trait Enum
 {
     use TypedValue;
@@ -29,9 +26,17 @@ trait Enum
         return static::fromNative(constant(get_called_class() . '::' . $name));
     }
 
-    public static function validate($value): bool
+    /**
+     * @param $value
+     * @return ValidationResult
+     */
+    public static function validate($value): ValidationResult
     {
-        return in_array($value, static::constantValues());
+        $result = new ValidationResult();
+        if (!in_array($value, static::constantValues())) {
+            $result->addError(sprintf('Only %s values are allowed', implode(', ', static::constantValues())));
+        }
+        return $result;
     }
 
     /**

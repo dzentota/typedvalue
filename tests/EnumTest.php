@@ -8,6 +8,7 @@ namespace tests\dzentota\TypedValue;
 
 use dzentota\TypedValue\Enum;
 use dzentota\TypedValue\Typed;
+use dzentota\TypedValue\ValidationException;
 use PHPUnit\Framework\TestCase;
 
 final class EnumTest extends TestCase
@@ -36,7 +37,7 @@ final class EnumTest extends TestCase
 
     public function test_from_native_throws_exception_when_given_non_string()
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(ValidationException::class);
         StatusEnum::fromNative(1000);
     }
 

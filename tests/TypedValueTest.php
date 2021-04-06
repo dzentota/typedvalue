@@ -8,6 +8,8 @@ namespace tests\dzentota\TypedValue;
 
 use dzentota\TypedValue\Typed;
 use dzentota\TypedValue\TypedValue;
+use dzentota\TypedValue\ValidationException;
+use dzentota\TypedValue\ValidationResult;
 use PHPUnit\Framework\TestCase;
 
 final class TypedValueTest extends TestCase
@@ -36,7 +38,7 @@ final class TypedValueTest extends TestCase
 
     public function test_from_native_throws_exception_when_given_non_string()
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(ValidationException::class);
         StringValue::fromNative(1000);
     }
 
@@ -46,14 +48,34 @@ final class TypedValueTest extends TestCase
         $stringValue = StringValue::fromNative($native);
         $this->assertEquals($native, $stringValue->toNative());
     }
+
+    public function test_try_parse_success()
+    {
+        $isParsed = StringValue::tryParse('foo', $typed);
+        $this->assertTrue($isParsed);
+        $this->assertInstanceOf(StringValue::class, $typed);
+    }
+
+    public function test_try_parse_fail()
+    {
+        $isParsed = StringValue::tryParse(false, $typed, $validationResult);
+        $this->assertFalse($isParsed);
+        $this->assertNull($typed);
+        $this->assertInstanceOf(ValidationResult::class, $validationResult);
+        $this->assertTrue($validationResult->fails());
+    }
 }
 
 final class StringValue implements Typed
 {
     use TypedValue;
 
-    public static function validate($value): bool
+    public static function validate($value): ValidationResult
     {
-        return is_string($value) && strlen($value) > 0;
+        $result = new ValidationResult();
+        if (!is_string($value) || strlen($value) <= 0) {
+            $result->addError('Only not empty strings are allowed');
+        }
+        return $result;
     }
 }

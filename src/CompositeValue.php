@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace dzentota\TypedValue;
 
+use ReflectionException;
+
 trait CompositeValue
 {
-    private static $fieldDefinitions;
+    private static array $fieldDefinitions = [];
     private static bool $ignoreUnknownFields = true;
 
     /**
@@ -52,8 +54,8 @@ trait CompositeValue
 
     /**
      * @param $value
-     * @return static
-     * @throws \ReflectionException
+     * @return Typed|static
+     * @throws ReflectionException
      */
     public static function fromNative($value): Typed
     {
@@ -61,45 +63,64 @@ trait CompositeValue
             throw new \InvalidArgumentException(sprintf("Array expected, %s given", gettype($value)));
         }
         $reflectionClass = new \ReflectionClass(static::class);
-        $object = $reflectionClass->newInstanceWithoutConstructor();
+        $composite = $reflectionClass->newInstanceWithoutConstructor();
         $fields = static::getFields();
         $ignored = array_diff_key($value, $fields);
         if (!static::$ignoreUnknownFields && count($ignored)) {
             throw new \InvalidArgumentException("Unknown field(s): " . implode(', ', array_keys($ignored)));
         }
         foreach ($fields as $fieldName => $fieldType) {
-            $object->$fieldName = $fieldType::fromNative($value[$fieldName]?? null);
+            $composite->$fieldName = $fieldType::fromNative($value[$fieldName]?? null);
         }
-        if (is_callable([static::class , 'validateProperties'])) {
-            static::validateProperties();
+        $result = static::validateProperties($composite);
+        if ($result->fails()) {
+            throw new ValidationException(sprintf('"%s" cannot be created from "%s"', get_called_class(), $value), $result);
         }
-        return $object;
+        return $composite;
     }
 
-    public static function tryParse($value, ?Typed &$typed): bool
+    /**
+     * @param Typed $value
+     * @return ValidationResult
+     */
+    public static function validateProperties(Typed $value): ValidationResult
     {
-        $reflectionClass = new \ReflectionClass(static::class);
-        $typed = $reflectionClass->newInstanceWithoutConstructor();
+        return new ValidationResult();
+    }
+
+    public static function tryParse($value, ?Typed &$typed = null, ?ValidationResult &$result = null): bool
+    {
+        $result = new ValidationResult();
         $fields = static::getFields();
         $ignored = array_diff_key($value, $fields);
-        if (!empty($ignored)) {
+        if (!static::$ignoreUnknownFields && count($ignored)) {
             return false;
         }
+        $reflectionClass = new \ReflectionClass(static::class);
+        $typed = $reflectionClass->newInstanceWithoutConstructor();
+
         foreach ($fields as $fieldName => $fieldType) {
-            try {
-                $typed->$fieldName = $fieldType::fromNative($value[$fieldName]);
-            } catch (\Exception $exception) {
-                return false;
+            if ($fieldType::tryParse($value[$fieldName]?? null, $typedValue, $res)) {
+                $typed->$fieldName = $typedValue;
+            } else {
+                foreach ($res->getErrors() as $error) {
+                    /**
+                     * @var ValidationError $error
+                     */
+                    $result->addError($error->getMessage(), $fieldName);
+                }
             }
         }
-        if (is_callable([static::class , 'validateProperties'])) {
-            try {
-                static::validateProperties();
-            } catch (\Exception $exception) {
-                return false;
+        $res = static::validateProperties($typed);
+        if ($res->fails()) {
+            foreach ($res->getErrors() as $error) {
+                /**
+                 * @var ValidationError $error
+                 */
+                $result->addError($error->getMessage(), $error->getField());
             }
         }
-        return true;
+        return $result->success() || ($typed = null);
     }
 
     /**
@@ -134,8 +155,6 @@ trait CompositeValue
             $type = $property->getType();
             if ($type && !$type->isBuiltin() && (in_array(Typed::class, class_implements($type->getName())))) {
                 $result[$property->name] = $type->getName();
-            } else {
-                throw new \DomainException('Class properties must be Typed');
             }
         }
         self::$fieldDefinitions = $result;

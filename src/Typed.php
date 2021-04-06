@@ -5,7 +5,7 @@ namespace dzentota\TypedValue;
 
 interface Typed
 {
-    public static function tryParse($value, ?Typed &$typed): bool;
+    public static function tryParse($value, ?Typed &$typed = null, ?ValidationResult &$result = null): bool;
 
     /**
      * @return bool
@@ -13,6 +13,7 @@ interface Typed
     public function isNull(): bool;
 
     /**
+     * @param Typed $object
      * @return bool
      */
     public function isSame(Typed $object): bool;
