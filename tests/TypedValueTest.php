@@ -64,9 +64,28 @@ final class TypedValueTest extends TestCase
         $this->assertInstanceOf(ValidationResult::class, $validationResult);
         $this->assertTrue($validationResult->fails());
     }
+
+    public function test_read_once_type_throws_exception_on_empty_value()
+    {
+        $this->expectException(\LogicException::class);
+        SecretValue::fromNative('');
+    }
+    public function test_read_once_type_throws_exception_on_null_value()
+    {
+        $this->expectException(\LogicException::class);
+        SecretValue::fromNative(null);
+    }
+
+    public function test_read_once_type_throws_exception_when_read_twice()
+    {
+        $secret = SecretValue::fromNative('secret');
+        $this->assertEquals('secret', $secret->toNative());
+        $this->expectException(\DomainException::class);
+        $secret->toNative();
+    }
 }
 
-final class StringValue implements Typed
+class StringValue implements Typed
 {
     use TypedValue;
 
@@ -78,4 +97,9 @@ final class StringValue implements Typed
         }
         return $result;
     }
+}
+
+class SecretValue extends StringValue
+{
+    protected static bool $readOnce = true;
 }
