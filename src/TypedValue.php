@@ -16,7 +16,6 @@ trait TypedValue
      * @var mixed
      */
     protected $value;
-    protected static bool $readOnce = false;
 
     /**
      * Implementation of TryParse pattern
@@ -28,9 +27,6 @@ trait TypedValue
      */
     public static function tryParse($value, ?Typed &$typed = null, ?ValidationResult &$result = null): bool
     {
-        if (static::$readOnce && ($value === null || $value === '')) {
-            throw new \LogicException('Empty values are not allowed');
-        }
         $result = static::validate($value);
         if($result->fails()) {
             return false;
@@ -53,7 +49,10 @@ trait TypedValue
     {
         $result = static::validate($value);
         if ($result->fails()) {
-            throw new ValidationException(sprintf('"%s" cannot be created from "%s"', get_called_class(), $value), $result);
+            $errors = $result->getErrors();
+            $firstError = $errors[0] ?? null;
+            $errorMessage = $firstError ? $firstError->getMessage() : 'Validation failed';
+            throw new ValidationException($errorMessage, $result);
         }
     }
     /**
@@ -90,14 +89,7 @@ trait TypedValue
      */
     public function toNative()
     {
-        $value = $this->value;
-        if (static::$readOnce) {
-            if ($this->value === null) {
-                throw new \DomainException('Value has already been consumed');
-            }
-            $this->value = null;
-        }
-        return $value;
+        return $this->value;
     }
 
 }

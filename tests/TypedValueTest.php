@@ -10,6 +10,7 @@ use dzentota\TypedValue\Typed;
 use dzentota\TypedValue\TypedValue;
 use dzentota\TypedValue\ValidationException;
 use dzentota\TypedValue\ValidationResult;
+use dzentota\TypedValue\Security\ReadOnce;
 use PHPUnit\Framework\TestCase;
 
 final class TypedValueTest extends TestCase
@@ -67,12 +68,12 @@ final class TypedValueTest extends TestCase
 
     public function test_read_once_type_throws_exception_on_empty_value()
     {
-        $this->expectException(\LogicException::class);
+        $this->expectException(ValidationException::class);
         SecretValue::fromNative('');
     }
     public function test_read_once_type_throws_exception_on_null_value()
     {
-        $this->expectException(\LogicException::class);
+        $this->expectException(ValidationException::class);
         SecretValue::fromNative(null);
     }
 
@@ -80,7 +81,7 @@ final class TypedValueTest extends TestCase
     {
         $secret = SecretValue::fromNative('secret');
         $this->assertEquals('secret', $secret->toNative());
-        $this->expectException(\DomainException::class);
+        $this->expectException(\LogicException::class);
         $secret->toNative();
     }
 }
@@ -99,7 +100,18 @@ class StringValue implements Typed
     }
 }
 
-class SecretValue extends StringValue
+class SecretValue implements Typed
 {
-    protected static bool $readOnce = true;
+    use TypedValue, ReadOnce {
+        ReadOnce::toNative insteadof TypedValue;
+    }
+
+    public static function validate($value): ValidationResult
+    {
+        $result = new ValidationResult();
+        if (!is_string($value) || strlen($value) <= 0) {
+            $result->addError('Only not empty strings are allowed');
+        }
+        return $result;
+    }
 }
