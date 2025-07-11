@@ -19,7 +19,7 @@ trait LoggingPolicyHash
 
     public function getSafeLoggableRepresentation(): string
     {
-        return hash('sha256', (string) $this->toNative());
+        return 'SHA256:' . hash('sha256', (string) $this->toNative());
     }
 
     /**
@@ -39,6 +39,6 @@ trait LoggingPolicyHash
      */
     protected function hashWithSalt(string $salt): string
     {
-        return hash('sha256', $salt . (string) $this->toNative());
+        return 'SHA256:' . hash('sha256', $salt . (string) $this->toNative());
     }
 } 

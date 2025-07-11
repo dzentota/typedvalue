@@ -102,4 +102,21 @@ final class UserPassword implements Typed, ProhibitedFromLogs
         
         return min(100, $score);
     }
+
+    /**
+     * Get password strength score (alias for getStrength).
+     */
+    public function getStrengthScore(): int
+    {
+        return $this->getStrength();
+    }
+
+    /**
+     * Get hashed representation for database storage.
+     * This consumes the password value (read-once behavior).
+     */
+    public function getHashedRepresentation(): string
+    {
+        return $this->hash();
+    }
 } 

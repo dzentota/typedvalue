@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace dzentota\TypedValue\Examples;
 
 use dzentota\TypedValue\Security\LoggingPolicyHash;
+use dzentota\TypedValue\Security\PersistentData;
 use dzentota\TypedValue\Security\SensitiveData;
 use dzentota\TypedValue\Typed;
 use dzentota\TypedValue\TypedValue;
@@ -15,8 +16,9 @@ use dzentota\TypedValue\ValidationResult;
  * 
  * Example implementation showing how to handle session IDs securely.
  * Uses hashing to enable correlation in logs while protecting the actual session ID.
+ * Implements PersistentData to store session IDs securely in the database.
  */
-final class SessionId implements Typed, SensitiveData
+final class SessionId implements Typed, SensitiveData, PersistentData
 {
     use TypedValue;
     use LoggingPolicyHash;
@@ -87,5 +89,25 @@ final class SessionId implements Typed, SensitiveData
     {
         // Use a fixed salt for consistent hashing across requests
         return $this->hashWithSalt('session_salt_2024');
+    }
+
+    /**
+     * Returns a hashed representation for database storage.
+     * This ensures session IDs can be stored securely while maintaining lookup capability.
+     */
+    public function getPersistentRepresentation(): string
+    {
+        return $this->getSafeLoggableRepresentation();
+    }
+
+    /**
+     * Get estimated session duration in minutes (for analytics).
+     * This is a mock implementation for demonstration.
+     */
+    public function getSessionDuration(): int
+    {
+        // In a real implementation, this would calculate based on creation time
+        // For now, return a mock value based on ID length (longer IDs = longer sessions)
+        return min(120, max(5, strlen($this->toNative()) * 2));
     }
 } 

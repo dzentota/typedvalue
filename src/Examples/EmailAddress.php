@@ -5,18 +5,21 @@ declare(strict_types=1);
 namespace dzentota\TypedValue\Examples;
 
 use dzentota\TypedValue\Security\LoggingPolicyTokenize;
+use dzentota\TypedValue\Security\PersistentData;
 use dzentota\TypedValue\Security\SensitiveData;
 use dzentota\TypedValue\Typed;
 use dzentota\TypedValue\TypedValue;
 use dzentota\TypedValue\ValidationResult;
+use JsonSerializable;
 
 /**
  * Email Address with tokenization logging policy.
  * 
  * Example implementation showing how to handle email addresses securely.
  * Uses tokenization to maintain correlation while protecting privacy.
+ * Implements JsonSerializable for safe API responses and PersistentData for database storage.
  */
-final class EmailAddress implements Typed, SensitiveData
+final class EmailAddress implements Typed, SensitiveData, JsonSerializable, PersistentData
 {
     use TypedValue;
     use LoggingPolicyTokenize;
@@ -87,5 +90,26 @@ final class EmailAddress implements Typed, SensitiveData
         ];
         
         return !in_array(strtolower($this->getDomain()), $personalDomains);
+    }
+
+    /**
+     * Returns a safe representation for JSON serialization.
+     * Only shows the domain part to prevent email exposure in APIs.
+     */
+    public function jsonSerialize(): array
+    {
+        return [
+            'domain' => $this->getDomain(),
+            'is_corporate' => $this->isCorporateEmail()
+        ];
+    }
+
+    /**
+     * Returns a tokenized representation for database storage.
+     * This ensures emails are never stored in plain text.
+     */
+    public function getPersistentRepresentation(): string
+    {
+        return $this->tokenizeWithPrefix('DB_EMAIL');
     }
 } 

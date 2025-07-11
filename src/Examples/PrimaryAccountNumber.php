@@ -5,18 +5,21 @@ declare(strict_types=1);
 namespace dzentota\TypedValue\Examples;
 
 use dzentota\TypedValue\Security\LoggingPolicyMask;
+use dzentota\TypedValue\Security\PersistentData;
 use dzentota\TypedValue\Security\SensitiveData;
 use dzentota\TypedValue\Typed;
 use dzentota\TypedValue\TypedValue;
 use dzentota\TypedValue\ValidationResult;
+use JsonSerializable;
 
 /**
  * Primary Account Number (Credit Card Number) with partial masking logging policy.
  * 
  * Example implementation showing how to handle credit card numbers securely.
  * Uses partial masking to show only the last 4 digits in logs.
+ * Implements JsonSerializable for safe API responses and PersistentData for encrypted storage.
  */
-final class PrimaryAccountNumber implements Typed, SensitiveData
+final class PrimaryAccountNumber implements Typed, SensitiveData, JsonSerializable, PersistentData
 {
     use TypedValue;
     use LoggingPolicyMask;
@@ -59,6 +62,27 @@ final class PrimaryAccountNumber implements Typed, SensitiveData
         $typedValue = new static();
         $typedValue->value = $native;
         return $typedValue;
+    }
+
+    /**
+     * Override tryParse to normalize spaces before storing
+     */
+    public static function tryParse($value, ?Typed &$typed = null, ?ValidationResult &$result = null): bool
+    {
+        $result = static::validate($value);
+        if($result->fails()) {
+            return false;
+        }
+        
+        // Normalize the value before storing
+        $normalizedValue = $value;
+        if (is_string($value) || is_numeric($value)) {
+            $normalizedValue = preg_replace('/\s+/', '', (string) $value);
+        }
+        
+        $typed = new static();
+        $typed->value = $normalizedValue;
+        return true;
     }
 
     /**
@@ -112,5 +136,30 @@ final class PrimaryAccountNumber implements Typed, SensitiveData
         }
         
         return ($sum % 10) === 0;
+    }
+
+    /**
+     * Returns a safe representation for JSON serialization.
+     * Only shows the last 4 digits and card brand.
+     */
+    public function jsonSerialize(): array
+    {
+        $valueStr = (string) $this->value;
+        return [
+            'last_four' => substr($valueStr, -4),
+            'brand' => $this->getCardBrand(),
+            'type' => 'card'
+        ];
+    }
+
+    /**
+     * Returns an encrypted representation for database storage.
+     * In production, this would use a proper encryption service.
+     */
+    public function getPersistentRepresentation(): string
+    {
+        // In production, use proper encryption service
+        // This is a simple example showing the concept
+        return 'ENC_PAN_' . base64_encode($this->value);
     }
 } 

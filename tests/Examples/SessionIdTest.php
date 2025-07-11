@@ -30,8 +30,9 @@ final class SessionIdTest extends TestCase
         
         $hash = $sessionId->getSafeLoggableRepresentation();
         
-        $this->assertEquals(64, strlen($hash)); // SHA256 produces 64-char hex string
-        $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $hash);
+        $this->assertEquals(71, strlen($hash)); // SHA256: prefix + 64-char hex string = 71 chars
+        $this->assertStringStartsWith('SHA256:', $hash);
+        $this->assertMatchesRegularExpression('/^SHA256:[a-f0-9]{64}$/', $hash);
     }
 
     public function test_hashing_is_deterministic()

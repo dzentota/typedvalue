@@ -13,7 +13,7 @@ namespace dzentota\TypedValue;
  * https://martinfowler.com/articles/replaceThrowWithNotification.html
  * Based on https://github.com/selective-php/validation
  */
-final class ValidationResult
+final class ValidationResult implements \Countable
 {
     /**
      * @var ValidationError[]
@@ -78,5 +78,15 @@ final class ValidationResult
     {
         $error = new ValidationError($message, $field);
         $this->errors[] = $error;
+    }
+
+    /**
+     * Count the number of errors.
+     *
+     * @return int Number of errors
+     */
+    public function count(): int
+    {
+        return count($this->errors);
     }
 }
