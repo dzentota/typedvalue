@@ -4,24 +4,39 @@ declare(strict_types=1);
 
 namespace dzentota\TypedValue\Examples;
 
-use dzentota\TypedValue\Security\LoggingPolicyHash;
+use dzentota\TypedValue\Security\GenericSecurityTrait;
 use dzentota\TypedValue\Security\PersistentData;
+use dzentota\TypedValue\Security\SecurityPolicy;
+use dzentota\TypedValue\Security\SecurityPolicyProvider;
+use dzentota\TypedValue\Security\SecurityStrategy;
 use dzentota\TypedValue\Security\SensitiveData;
 use dzentota\TypedValue\Typed;
 use dzentota\TypedValue\TypedValue;
 use dzentota\TypedValue\ValidationResult;
 
 /**
- * Session ID with SHA256 hashing logging policy.
+ * Session ID with comprehensive security policies.
  * 
  * Example implementation showing how to handle session IDs securely.
- * Uses hashing to enable correlation in logs while protecting the actual session ID.
- * Implements PersistentData to store session IDs securely in the database.
+ * Uses different strategies for different contexts.
  */
-final class SessionId implements Typed, SensitiveData, PersistentData
+final class SessionId implements Typed, SensitiveData, PersistentData, SecurityPolicyProvider
 {
     use TypedValue;
-    use LoggingPolicyHash;
+    use GenericSecurityTrait;
+
+    /**
+     * Define security policy for session IDs.
+     */
+    public static function getSecurityPolicy(): SecurityPolicy
+    {
+        return SecurityPolicy::create()
+            ->logging(SecurityStrategy::HASH_SHA256)   // Hash for logs
+            ->persistence(SecurityStrategy::HASH_SHA256) // Hash for DB storage
+            ->reporting(SecurityStrategy::PROHIBIT)    // Never in reports
+            ->serialization(SecurityStrategy::TOKENIZE) // Token for APIs
+            ->build();
+    }
 
     public static function validate($value): ValidationResult
     {
@@ -87,7 +102,6 @@ final class SessionId implements Typed, SensitiveData, PersistentData
      */
     public function getSafeLoggableRepresentation(): string
     {
-        // Use a fixed salt for consistent hashing across requests
         return $this->hashWithSalt('session_salt_2024');
     }
 

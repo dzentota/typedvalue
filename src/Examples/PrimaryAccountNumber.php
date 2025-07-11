@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace dzentota\TypedValue\Examples;
 
-use dzentota\TypedValue\Security\LoggingPolicyMask;
+use dzentota\TypedValue\Security\GenericSecurityTrait;
 use dzentota\TypedValue\Security\PersistentData;
+use dzentota\TypedValue\Security\SecurityPolicy;
+use dzentota\TypedValue\Security\SecurityPolicyProvider;
+use dzentota\TypedValue\Security\SecurityStrategy;
 use dzentota\TypedValue\Security\SensitiveData;
 use dzentota\TypedValue\Typed;
 use dzentota\TypedValue\TypedValue;
@@ -13,16 +16,23 @@ use dzentota\TypedValue\ValidationResult;
 use JsonSerializable;
 
 /**
- * Primary Account Number (Credit Card Number) with partial masking logging policy.
+ * Primary Account Number (Credit Card Number) with comprehensive security.
  * 
  * Example implementation showing how to handle credit card numbers securely.
- * Uses partial masking to show only the last 4 digits in logs.
- * Implements JsonSerializable for safe API responses and PersistentData for encrypted storage.
+ * Uses different strategies for different contexts.
  */
-final class PrimaryAccountNumber implements Typed, SensitiveData, JsonSerializable, PersistentData
+final class PrimaryAccountNumber implements Typed, SensitiveData, JsonSerializable, PersistentData, SecurityPolicyProvider
 {
     use TypedValue;
-    use LoggingPolicyMask;
+    use GenericSecurityTrait;
+
+    /**
+     * Define security policy for credit card numbers.
+     */
+    public static function getSecurityPolicy(): SecurityPolicy
+    {
+        return SecurityPolicy::financial(); // Use the preset financial policy
+    }
 
     public static function validate($value): ValidationResult
     {

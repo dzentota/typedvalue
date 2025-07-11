@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace tests\dzentota\TypedValue\Examples;
 
 use dzentota\TypedValue\Examples\UserPassword;
-use dzentota\TypedValue\Security\LoggingPolicy;
+use dzentota\TypedValue\Security\SecurityStrategy;
 use dzentota\TypedValue\ValidationException;
 use LogicException;
 use PHPUnit\Framework\TestCase;
@@ -22,9 +22,9 @@ final class UserPasswordTest extends TestCase
 
     public function test_logging_policy_is_prohibit()
     {
-        $policy = UserPassword::getLoggingPolicy();
+        $strategy = UserPassword::getLoggingSecurityStrategy();
         
-        $this->assertTrue($policy->isProhibit());
+        $this->assertEquals(SecurityStrategy::PROHIBIT, $strategy);
     }
 
     public function test_safe_loggable_representation_throws_exception()
@@ -32,7 +32,7 @@ final class UserPasswordTest extends TestCase
         $password = UserPassword::fromNative('StrongP@ssw0rd123');
         
         $this->expectException(LogicException::class);
-        $this->expectExceptionMessage('Attempted to log a prohibited value of type');
+        $this->expectExceptionMessage('Attempted to access a prohibited value of type');
         
         $password->getSafeLoggableRepresentation();
     }

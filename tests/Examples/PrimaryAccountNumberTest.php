@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace tests\dzentota\TypedValue\Examples;
 
 use dzentota\TypedValue\Examples\PrimaryAccountNumber;
-use dzentota\TypedValue\Security\LoggingPolicy;
+use dzentota\TypedValue\Security\SecurityStrategy;
 use dzentota\TypedValue\ValidationException;
 use PHPUnit\Framework\TestCase;
 
@@ -38,9 +38,9 @@ final class PrimaryAccountNumberTest extends TestCase
 
     public function test_logging_policy_is_mask_partial()
     {
-        $policy = PrimaryAccountNumber::getLoggingPolicy();
+        $strategy = PrimaryAccountNumber::getLoggingSecurityStrategy();
         
-        $this->assertTrue($policy->isMaskPartial());
+        $this->assertEquals(SecurityStrategy::MASK_PARTIAL, $strategy);
     }
 
     public function test_safe_loggable_representation_masks_correctly()

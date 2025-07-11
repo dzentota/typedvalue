@@ -3,11 +3,13 @@
 namespace dzentota\TypedValue\Examples;
 
 use DateTimeImmutable;
+use dzentota\TypedValue\Security\GenericSecurityTrait;
 use dzentota\TypedValue\Security\PersistentData;
 use dzentota\TypedValue\Security\ReportableData;
+use dzentota\TypedValue\Security\SecurityPolicy;
+use dzentota\TypedValue\Security\SecurityPolicyProvider;
+use dzentota\TypedValue\Security\SecurityStrategy;
 use dzentota\TypedValue\Security\SensitiveData;
-use dzentota\TypedValue\Security\LoggingPolicy;
-use dzentota\TypedValue\Security\LoggingPolicyHash;
 use dzentota\TypedValue\Typed;
 use dzentota\TypedValue\TypedValue;
 use dzentota\TypedValue\ValidationResult;
@@ -18,10 +20,10 @@ use dzentota\TypedValue\ValidationResult;
  * This shows how to provide anonymized data for analytics while protecting
  * the actual birth date from exposure in reports and database storage.
  */
-final class DateOfBirth implements Typed, SensitiveData, ReportableData, PersistentData
+final class DateOfBirth implements Typed, SensitiveData, ReportableData, PersistentData, SecurityPolicyProvider
 {
     use TypedValue;
-    use LoggingPolicyHash;
+    use GenericSecurityTrait;
 
     /**
      * Validate a date of birth value.
@@ -167,9 +169,7 @@ final class DateOfBirth implements Typed, SensitiveData, ReportableData, Persist
     }
 
     /**
-     * Returns age for analytics without exposing the actual birth date.
-     * 
-     * @return int
+     * Override getAnonymizedReportValue to provide age instead of raw date.
      */
     public function getAnonymizedReportValue(): int
     {
@@ -207,13 +207,16 @@ final class DateOfBirth implements Typed, SensitiveData, ReportableData, Persist
     }
 
     /**
-     * Use hash policy for logging to protect birth date.
-     * 
-     * @return LoggingPolicy
+     * Define security policy for date of birth data.
      */
-    public static function getLoggingPolicy(): LoggingPolicy
+    public static function getSecurityPolicy(): SecurityPolicy
     {
-        return LoggingPolicy::hashSha256();
+        return SecurityPolicy::create()
+            ->logging(SecurityStrategy::HASH_SHA256)     // Hash for logs
+            ->persistence(SecurityStrategy::HASH_SHA256) // Hash for DB storage
+            ->reporting(SecurityStrategy::PLAINTEXT)     // Age is safe for reports
+            ->serialization(SecurityStrategy::HASH_SHA256) // Hash for APIs
+            ->build();
     }
 
     /**

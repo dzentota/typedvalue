@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace tests\dzentota\TypedValue\Examples;
 
 use dzentota\TypedValue\Examples\CVV;
+use dzentota\TypedValue\Security\SecurityStrategy;
 use dzentota\TypedValue\ValidationException;
 use LogicException;
 use PHPUnit\Framework\TestCase;
@@ -36,9 +37,9 @@ final class CVVTest extends TestCase
 
     public function test_logging_policy_is_prohibit()
     {
-        $policy = CVV::getLoggingPolicy();
+        $strategy = CVV::getLoggingSecurityStrategy();
         
-        $this->assertTrue($policy->isProhibit());
+        $this->assertEquals(SecurityStrategy::PROHIBIT, $strategy);
     }
 
     public function test_safe_loggable_representation_throws_exception()
@@ -46,7 +47,7 @@ final class CVVTest extends TestCase
         $cvv = CVV::fromNative('123');
         
         $this->expectException(LogicException::class);
-        $this->expectExceptionMessage('Attempted to log a prohibited value of type');
+        $this->expectExceptionMessage('Attempted to access a prohibited value of type');
         
         $cvv->getSafeLoggableRepresentation();
     }

@@ -1,6 +1,6 @@
 # TypedValue
 
-A PHP 7.4+ library for creating robust typed value objects with built-in validation, composite values, enum support, and **comprehensive security features** for handling sensitive data.
+A PHP 8.1+ library for creating robust typed value objects with built-in validation, composite values, native enum support, and **comprehensive security features** for handling sensitive data.
 
 ## Features
 
@@ -24,8 +24,17 @@ composer require dzentota/typedvalue
 
 ## Requirements
 
-- PHP 7.4 or higher
-- PHP 8.0+ recommended
+- PHP 8.1 or higher
+
+### Modern PHP Features
+
+This library takes full advantage of modern PHP features:
+
+- **Native Enums**: `SecurityStrategy` and `SecurityContext` use PHP 8.1+ backed enums
+- **Match Expressions**: Advanced pattern matching for security policies
+- **Readonly Properties**: Immutable security policy objects
+- **Constructor Property Promotion**: Cleaner, more concise code
+- **Union Types**: Flexible parameter handling
 
 ## Quick Start
 
@@ -99,53 +108,65 @@ $isValid = $cvv->verifyAndClear('123'); // true, and CVV is consumed
 
 ## Security Framework
 
-### Logging Policies
+### Security Strategies
 
-The library provides six different logging policies for sensitive data:
+The library provides six different security strategies for sensitive data:
 
 ```php
-use dzentota\TypedValue\Security\LoggingPolicy;
+use dzentota\TypedValue\Security\SecurityStrategy;
 
-LoggingPolicy::prohibit();     // Never log (throws exception)
-LoggingPolicy::maskPartial();  // Show partial data: "****1234"
-LoggingPolicy::hashSha256();   // SHA256 hash for correlation
-LoggingPolicy::tokenize();     // Generate correlation tokens
-LoggingPolicy::encrypt();      // Encrypted representation
-LoggingPolicy::plaintext();    // Safe to log as-is
+SecurityStrategy::PROHIBIT       // Never log (throws exception)
+SecurityStrategy::MASK_PARTIAL   // Show partial data: "****1234"
+SecurityStrategy::HASH_SHA256    // SHA256 hash for correlation
+SecurityStrategy::TOKENIZE       // Generate correlation tokens
+SecurityStrategy::ENCRYPT        // Encrypted representation
+SecurityStrategy::PLAINTEXT      // Safe to log as-is
 ```
 
-### Security Traits
+### Modern Security System
 
-Use pre-built traits for common security patterns:
+Use the new unified security system with policies for different contexts:
 
 ```php
-use dzentota\TypedValue\Security\LoggingPolicyMask;
-use dzentota\TypedValue\Security\LoggingPolicyProhibit;
-use dzentota\TypedValue\Security\LoggingPolicyHash;
-use dzentota\TypedValue\Security\LoggingPolicyTokenize;
-use dzentota\TypedValue\Security\ReadOnce;
+use dzentota\TypedValue\Security\{SecurityPolicy, SecurityStrategy, SecurityContext, GenericSecurityTrait};
 
 // Credit Card Number
-class CreditCardNumber implements Typed, SensitiveData
+class CreditCardNumber implements Typed, SensitiveData, SecurityPolicyProvider
 {
-    use TypedValue, LoggingPolicyMask;
+    use TypedValue, GenericSecurityTrait;
     
-    // Automatically masks: "4111111111111111" → "************1111"
+    public static function getSecurityPolicy(): SecurityPolicy
+    {
+        return SecurityPolicy::financial(); // Preset policy for financial data
+    }
+    
+    // Automatically masks for logging: "4111111111111111" → "************1111"
+    // Encrypts for persistence, masks for serialization
 }
 
 // API Key  
-class ApiKey implements Typed, SensitiveData
+class ApiKey implements Typed, SensitiveData, SecurityPolicyProvider
 {
-    use TypedValue, LoggingPolicyHash;
+    use TypedValue, GenericSecurityTrait;
     
-    // Automatically hashes with SHA256 for logging
+    public static function getSecurityPolicy(): SecurityPolicy
+    {
+        return SecurityPolicy::secure(); // Hash for logging/persistence
+    }
+    
+    // Automatically hashes with SHA256 for logging and persistence
 }
 
 // One-time Token
-class OneTimeToken implements Typed, ProhibitedFromLogs
+class OneTimeToken implements Typed, ProhibitedFromLogs, SecurityPolicyProvider
 {
-    use TypedValue, LoggingPolicyProhibit, ReadOnce {
+    use TypedValue, GenericSecurityTrait, ReadOnce {
         ReadOnce::toNative insteadof TypedValue;
+    }
+    
+    public static function getSecurityPolicy(): SecurityPolicy
+    {
+        return SecurityPolicy::prohibited(); // Never log, prohibited everywhere
     }
     
     // Can only be read once, never logged
@@ -156,12 +177,20 @@ class OneTimeToken implements Typed, ProhibitedFromLogs
 
 ```php
 <?php
-use dzentota\TypedValue\Security\SensitiveData;
-use dzentota\TypedValue\Security\LoggingPolicyMask;
+use dzentota\TypedValue\Security\{SensitiveData, SecurityPolicy, SecurityStrategy, SecurityContext};
 
-class SocialSecurityNumber implements Typed, SensitiveData
+class SocialSecurityNumber implements Typed, SensitiveData, SecurityPolicyProvider
 {
-    use TypedValue, LoggingPolicyMask;
+    use TypedValue, GenericSecurityTrait;
+    
+    public static function getSecurityPolicy(): SecurityPolicy
+    {
+        return SecurityPolicy::create()
+            ->setStrategy(SecurityContext::LOGGING, SecurityStrategy::MASK_PARTIAL)
+            ->setStrategy(SecurityContext::PERSISTENCE, SecurityStrategy::ENCRYPT)
+            ->setStrategy(SecurityContext::REPORTING, SecurityStrategy::PLAINTEXT)
+            ->setStrategy(SecurityContext::SERIALIZATION, SecurityStrategy::MASK_PARTIAL);
+    }
     
     public static function validate($value): ValidationResult
     {
@@ -175,7 +204,7 @@ class SocialSecurityNumber implements Typed, SensitiveData
     }
     
     // Custom masking: show only last 4 digits
-    public function getSafeLoggableRepresentation(): string
+    protected function maskPartial(): string
     {
         $ssn = preg_replace('/\D/', '', $this->toNative());
         return '***-**-' . substr($ssn, -4);
@@ -192,7 +221,7 @@ echo $ssn->getSafeLoggableRepresentation(); // "***-**-6789"
 
 ```php
 <?php
-use dzentota\TypedValue\Security\{SensitiveData, ProhibitedFromLogs, ReadOnce};
+use dzentota\TypedValue\Security\{SensitiveData, ProhibitedFromLogs, ReadOnce, SecurityPolicyProvider};
 
 class PaymentRequest implements Typed
 {
@@ -205,9 +234,14 @@ class PaymentRequest implements Typed
     private CustomerEmail $customerEmail;
 }
 
-class Amount implements Typed, SensitiveData
+class Amount implements Typed, SensitiveData, SecurityPolicyProvider
 {
-    use TypedValue, LoggingPolicyPlaintext; // Safe to log amounts
+    use TypedValue, GenericSecurityTrait;
+    
+    public static function getSecurityPolicy(): SecurityPolicy
+    {
+        return SecurityPolicy::public(); // Safe to log amounts
+    }
     
     public static function validate($value): ValidationResult
     {
@@ -219,11 +253,20 @@ class Amount implements Typed, SensitiveData
     }
 }
 
-class ExpiryDate implements Typed, SensitiveData
+class ExpiryDate implements Typed, SensitiveData, SecurityPolicyProvider
 {
-    use TypedValue, LoggingPolicyMask;
+    use TypedValue, GenericSecurityTrait;
     
-    public function getSafeLoggableRepresentation(): string
+    public static function getSecurityPolicy(): SecurityPolicy
+    {
+        return SecurityPolicy::create()
+            ->setStrategy(SecurityContext::LOGGING, SecurityStrategy::MASK_PARTIAL)
+            ->setStrategy(SecurityContext::PERSISTENCE, SecurityStrategy::ENCRYPT)
+            ->setStrategy(SecurityContext::REPORTING, SecurityStrategy::PLAINTEXT)
+            ->setStrategy(SecurityContext::SERIALIZATION, SecurityStrategy::MASK_PARTIAL);
+    }
+    
+    protected function maskPartial(): string
     {
         // Show only the year: "12/25" → "**25"
         return '**' . substr($this->toNative(), -2);
@@ -245,7 +288,7 @@ if (PaymentRequest::tryParse($paymentData, $payment, $validationResult)) {
         'card' => $payment->cardNumber->getSafeLoggableRepresentation(), // "411111******1111"
         'expiry' => $payment->expiryDate->getSafeLoggableRepresentation(), // "**25"
         'amount' => $payment->amount->getSafeLoggableRepresentation(), // 99.99
-        'customer' => $payment->customerEmail->getSafeLoggableRepresentation(), // "EMAIL_abc123..."
+        'customer' => $payment->customerEmail->getSafeLoggableRepresentation(), // "TOKEN_abc123..."
         // CVV is ProhibitedFromLogs - attempting to log it would throw an exception
     ]);
     
@@ -257,6 +300,38 @@ if (PaymentRequest::tryParse($paymentData, $payment, $validationResult)) {
     // Handle validation errors
     foreach ($validationResult->getErrors() as $error) {
         echo "Error: {$error->getMessage()}\n";
+    }
+}
+```
+
+### Advanced Security Configuration
+
+```php
+<?php
+class CreditCardProcessor implements SecurityPolicyProvider
+{
+    use GenericSecurityTrait;
+    
+    public static function getSecurityPolicy(): SecurityPolicy
+    {
+        return SecurityPolicy::create()
+            ->setStrategy(SecurityContext::LOGGING, SecurityStrategy::MASK_PARTIAL)
+            ->setStrategy(SecurityContext::PERSISTENCE, SecurityStrategy::ENCRYPT)
+            ->setStrategy(SecurityContext::REPORTING, SecurityStrategy::TOKENIZE)
+            ->setStrategy(SecurityContext::SERIALIZATION, SecurityStrategy::MASK_PARTIAL);
+    }
+    
+    public function processPayment(PrimaryAccountNumber $pan, CVV $cvv): PaymentResult
+    {
+        // All security strategies are applied automatically
+        $this->logger->info('Processing payment', [
+            'pan' => $pan->getSafeLoggableRepresentation(), // Masked
+            'pan_persistent' => $pan->getPersistentRepresentation(), // Encrypted
+            'pan_report' => $pan->getAnonymizedReportValue(), // Tokenized
+            // CVV is prohibited from logging
+        ]);
+        
+        return new PaymentResult(/* ... */);
     }
 }
 ```
@@ -352,9 +427,9 @@ class CustomSecureValue implements Typed, SensitiveData
 {
     use TypedValue;
     
-    public static function getLoggingPolicy(): LoggingPolicy
+    public static function getLoggingSecurityStrategy(): SecurityStrategy
     {
-        return LoggingPolicy::encrypt(); // Use encryption policy
+        return SecurityStrategy::ENCRYPT; // Use encryption strategy
     }
     
     public function getSafeLoggableRepresentation(): string
@@ -439,7 +514,7 @@ interface Typed
 ```php
 interface SensitiveData
 {
-    public static function getLoggingPolicy(): LoggingPolicy;
+    public static function getLoggingSecurityStrategy(): SecurityStrategy;
     public function getSafeLoggableRepresentation();
 }
 
@@ -582,5 +657,5 @@ Contributions are welcome! Please ensure:
 - ✅ **Security traits** for rapid development
 - ✅ **Comprehensive examples** for real-world scenarios
 - ✅ **100% test coverage** including security features
-- ✅ **PHP 7.4+ and 8.x compatibility**
+- ✅ **PHP 8.1+ with modern enum support**
 - ✅ **Backward-compatible** migration from legacy read-once

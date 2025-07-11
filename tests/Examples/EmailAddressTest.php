@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace tests\dzentota\TypedValue\Examples;
 
 use dzentota\TypedValue\Examples\EmailAddress;
+use dzentota\TypedValue\Security\SecurityStrategy;
 use dzentota\TypedValue\ValidationException;
 use PHPUnit\Framework\TestCase;
 
@@ -19,9 +20,9 @@ final class EmailAddressTest extends TestCase
 
     public function test_logging_policy_is_tokenize()
     {
-        $policy = EmailAddress::getLoggingPolicy();
+        $strategy = EmailAddress::getLoggingSecurityStrategy();
         
-        $this->assertTrue($policy->isTokenize());
+        $this->assertEquals(SecurityStrategy::TOKENIZE, $strategy);
     }
 
     public function test_safe_loggable_representation_creates_token()

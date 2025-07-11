@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace dzentota\TypedValue\Examples;
 
-use dzentota\TypedValue\Security\LoggingPolicyProhibit;
+use dzentota\TypedValue\Security\GenericSecurityTrait;
 use dzentota\TypedValue\Security\ProhibitedFromLogs;
 use dzentota\TypedValue\Security\ReadOnce;
+use dzentota\TypedValue\Security\SecurityPolicy;
+use dzentota\TypedValue\Security\SecurityPolicyProvider;
+use dzentota\TypedValue\Security\SecurityStrategy;
 use dzentota\TypedValue\Typed;
 use dzentota\TypedValue\TypedValue;
 use dzentota\TypedValue\ValidationResult;
@@ -17,10 +20,18 @@ use dzentota\TypedValue\ValidationResult;
  * Example implementation showing how to handle CVV codes securely.
  * Combines prohibition from logs with read-once access pattern for maximum security.
  */
-final class CVV implements Typed, ProhibitedFromLogs
+final class CVV implements Typed, ProhibitedFromLogs, SecurityPolicyProvider
 {
-    use TypedValue, LoggingPolicyProhibit, ReadOnce {
+    use TypedValue, GenericSecurityTrait, ReadOnce {
         ReadOnce::toNative insteadof TypedValue;
+    }
+
+    /**
+     * Define security policy for CVV codes.
+     */
+    public static function getSecurityPolicy(): SecurityPolicy
+    {
+        return SecurityPolicy::prohibited(); // Use the preset prohibited policy
     }
 
     public static function validate($value): ValidationResult

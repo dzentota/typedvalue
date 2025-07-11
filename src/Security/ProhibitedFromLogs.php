@@ -9,7 +9,7 @@ namespace dzentota\TypedValue\Security;
  * 
  * This empty marker interface provides a more explicit and powerful way
  * for loggers to identify data that should trigger an exception.
- * The intent becomes more obvious than simply checking for LoggingPolicy::PROHIBIT.
+ * The intent becomes more obvious than simply checking for SecurityStrategy::PROHIBIT.
  */
 interface ProhibitedFromLogs extends SensitiveData
 {

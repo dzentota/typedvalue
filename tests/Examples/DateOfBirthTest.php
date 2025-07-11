@@ -8,7 +8,7 @@ use dzentota\TypedValue\Examples\DateOfBirth;
 use dzentota\TypedValue\Security\ReportableData;
 use dzentota\TypedValue\Security\SensitiveData;
 use dzentota\TypedValue\Security\PersistentData;
-use dzentota\TypedValue\Security\LoggingPolicy;
+use dzentota\TypedValue\Security\SecurityStrategy;
 use PHPUnit\Framework\TestCase;
 use DateTimeImmutable;
 
@@ -115,14 +115,14 @@ class DateOfBirthTest extends TestCase
         }
     }
 
-    public function testDateOfBirthLoggingPolicy(): void
+    public function testDateOfBirthLoggingSecurityStrategy(): void
     {
         $dob = DateOfBirth::fromNative('1990-01-01');
         
-        $policy = $dob->getLoggingPolicy();
-        
-        $this->assertInstanceOf(LoggingPolicy::class, $policy);
-        $this->assertTrue($policy->isHashSha256());
+                $strategy = $dob->getLoggingSecurityStrategy();
+
+        $this->assertInstanceOf(SecurityStrategy::class, $strategy);
+        $this->assertEquals(SecurityStrategy::HASH_SHA256, $strategy);
     }
 
     public function testDateOfBirthSafeLoggableRepresentation(): void

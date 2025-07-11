@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace dzentota\TypedValue\Examples;
 
-use dzentota\TypedValue\Security\LoggingPolicyTokenize;
+use dzentota\TypedValue\Security\GenericSecurityTrait;
 use dzentota\TypedValue\Security\PersistentData;
+use dzentota\TypedValue\Security\SecurityPolicy;
+use dzentota\TypedValue\Security\SecurityPolicyProvider;
+use dzentota\TypedValue\Security\SecurityStrategy;
 use dzentota\TypedValue\Security\SensitiveData;
 use dzentota\TypedValue\Typed;
 use dzentota\TypedValue\TypedValue;
@@ -13,16 +16,28 @@ use dzentota\TypedValue\ValidationResult;
 use JsonSerializable;
 
 /**
- * Email Address with tokenization logging policy.
+ * Email Address with comprehensive security policies.
  * 
  * Example implementation showing how to handle email addresses securely.
- * Uses tokenization to maintain correlation while protecting privacy.
- * Implements JsonSerializable for safe API responses and PersistentData for database storage.
+ * Uses different strategies for different contexts.
  */
-final class EmailAddress implements Typed, SensitiveData, JsonSerializable, PersistentData
+final class EmailAddress implements Typed, SensitiveData, JsonSerializable, PersistentData, SecurityPolicyProvider
 {
     use TypedValue;
-    use LoggingPolicyTokenize;
+    use GenericSecurityTrait;
+
+    /**
+     * Define security policy for email addresses.
+     */
+    public static function getSecurityPolicy(): SecurityPolicy
+    {
+        return SecurityPolicy::create()
+            ->logging(SecurityStrategy::TOKENIZE)     // Tokenize for logs
+            ->persistence(SecurityStrategy::TOKENIZE) // Tokenize for DB storage
+            ->reporting(SecurityStrategy::PLAINTEXT)  // Domain is safe for reports
+            ->serialization(SecurityStrategy::PLAINTEXT) // Domain only for APIs
+            ->build();
+    }
 
     public static function validate($value): ValidationResult
     {
@@ -44,6 +59,14 @@ final class EmailAddress implements Typed, SensitiveData, JsonSerializable, Pers
         }
         
         return $result;
+    }
+
+    /**
+     * Override reporting to return only domain (safe data).
+     */
+    public function getAnonymizedReportValue(): string
+    {
+        return $this->getDomain();
     }
 
     /**
@@ -106,7 +129,6 @@ final class EmailAddress implements Typed, SensitiveData, JsonSerializable, Pers
 
     /**
      * Returns a tokenized representation for database storage.
-     * This ensures emails are never stored in plain text.
      */
     public function getPersistentRepresentation(): string
     {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace tests\dzentota\TypedValue\Examples;
 
 use dzentota\TypedValue\Examples\SessionId;
+use dzentota\TypedValue\Security\SecurityStrategy;
 use dzentota\TypedValue\ValidationException;
 use PHPUnit\Framework\TestCase;
 
@@ -19,9 +20,9 @@ final class SessionIdTest extends TestCase
 
     public function test_logging_policy_is_hash_sha256()
     {
-        $policy = SessionId::getLoggingPolicy();
+        $strategy = SessionId::getLoggingSecurityStrategy();
         
-        $this->assertTrue($policy->isHashSha256());
+        $this->assertEquals(SecurityStrategy::HASH_SHA256, $strategy);
     }
 
     public function test_safe_loggable_representation_creates_hash()
