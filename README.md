@@ -1,6 +1,6 @@
 # TypedValue
 
-A PHP 8.1+ library for creating robust typed value objects with built-in validation, composite values, native enum support, and **comprehensive security features** for handling sensitive data.
+A PHP 8.3+ library for creating robust typed value objects with built-in validation, composite values, native enum support, and **comprehensive security features** for handling sensitive data.
 
 ## Features
 
@@ -30,7 +30,7 @@ composer require dzentota/typedvalue
 
 This library takes full advantage of modern PHP features:
 
-- **Native Enums**: `SecurityStrategy` and `SecurityContext` use PHP 8.1+ backed enums
+- **Native Enums**: `SecurityStrategy` and `SecurityContext` use PHP 8.3+ backed enums
 - **Match Expressions**: Advanced pattern matching for security policies
 - **Readonly Properties**: Immutable security policy objects
 - **Constructor Property Promotion**: Cleaner, more concise code
@@ -657,5 +657,5 @@ Contributions are welcome! Please ensure:
 - ✅ **Security traits** for rapid development
 - ✅ **Comprehensive examples** for real-world scenarios
 - ✅ **100% test coverage** including security features
-- ✅ **PHP 8.1+ with modern enum support**
+- ✅ **PHP 8.3+ with modern enum support**
 - ✅ **Backward-compatible** migration from legacy read-once
